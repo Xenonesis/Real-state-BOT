@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Estate Call Analysis Bot</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="bg-light">
+    <div class="container my-5">
+        <!-- Main Card for Upload Form -->
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-primary text-white text-center py-3">
+                <h2 class="mb-0">Real Estate Call Analysis Bot</h2>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title text-center">Upload a Real Estate Call Recording</h5>
+                <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label for="client_name" class="form-label">Client Name</label>
+                        <input type="text" class="form-control" id="client_name" name="client_name" required>
+                        <div class="invalid-feedback">Please enter the client name.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="customer_name" class="form-label">Customer Name</label>
+                        <input type="text" class="form-control" id="customer_name" name="customer_name" required>
+                        <div class="invalid-feedback">Please enter the customer name.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="audio_file" class="form-label">Upload Audio File</label>
+                        <input type="file" class="form-control" id="audio_file" name="audio_file" accept=".wav, .mp3" required>
+                        <div class="invalid-feedback">Please upload a valid audio file (WAV or MP3).</div>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary px-4">Submit</button>
+                    </div>
+                </form>
+
+                <!-- Spinner for loading feedback -->
+                <div class="text-center mt-3" id="spinner" style="display:none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <p class="mt-2">Processing the audio, please wait...</p>
+                </div>
+
+                <!-- Progress Bar for upload and processing -->
+                <div class="progress mt-3" style="height: 25px; display:none;" id="progressBarContainer">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Display Section -->
+        {% if result %}
+        <div class="card mt-4 shadow-lg border-0">
+            <div class="card-header bg-success text-white text-center py-3">
+                <h2 class="mb-0">Call Analysis Result</h2>
+            </div>
+            <div class="card-body">
+                <p><strong>Client Name:</strong> {{ result['Client Name'] }}</p>
+                <p><strong>Customer Name:</strong> {{ result['Customer Name'] }}</p>
+                <p><strong>Date of Call:</strong> {{ result['Date of Call'] }}</p>
+                <p><strong>Interested in Property:</strong> {{ result['Interested in Property'] }}</p>
+                <h5 class="mt-4">Conversation Transcript</h5>
+                <div class="p-3 bg-light rounded border">
+                    <p class="mb-0">{{ result['Conversation Transcript'] }}</p>
+                </div>
+                <h5 class="mt-4">Translated Transcript (English)</h5>
+                <div class="p-3 bg-light rounded border">
+                    <p class="mb-0">{{ result['Translated Transcript (English)'] }}</p>
+                </div>
+                <div class="text-center mt-4">
+                    <a href="/download/{{ csv_file }}" class="btn btn-success px-4" download>Download CSV</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap JS for form validation and responsiveness -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        // Bootstrap form validation
+        (function() {
+            'use strict';
+            const forms = document.querySelectorAll('.needs-validation');
+            Array.from(forms).forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    } else {
+                        showSpinner(); // Show spinner only if form is valid
+                        document.getElementById('progressBarContainer').style.display = 'block'; // Show progress bar
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+
+        // Show spinner when submitting form
+        function showSpinner() {
+            document.getElementById('spinner').style.display = 'block';
+        }
+
+        // Socket.IO - Update progress bar during audio processing
+        const socket = io();
+        socket.on('transcription_progress', function(data) {
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = data.progress + '%';
+            progressBar.innerHTML = data.progress + '%';
+            progressBar.setAttribute('aria-valuenow', data.progress);
+        });
+    </script>
+</body>
+
+</html>
